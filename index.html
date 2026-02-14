@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -906,7 +906,7 @@
 
                 <div class="referral-box">
                     <h4 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--accent-color);">Votre lien de parrainage</h4>
-                    <p class="referral-link" id="team-ref-link">https://thevertpremier.github.io/Thevertpremier//register?ref=------</p>
+                    <p class="referral-link" id="team-ref-link">https://thevertpremier.github.io/Thevertpremier/?ref=------</p>
                     <button class="btn-primary" style="padding: 10px; font-size: 0.8rem; width: auto;" onclick="copyReferralLink()">Copier le lien</button>
                 </div>
 
@@ -1170,7 +1170,7 @@
             }
 
             const myCode = data.myReferralCode || "000000";
-            document.getElementById('team-ref-link').innerText = `https://thevertpremier.github.io/Thevertpremier//register?ref=${myCode}`;
+            document.getElementById('team-ref-link').innerText = `https://thevertpremier.github.io/Thevertpremier/?ref=${myCode}`;
         }
 
         async function updateTeamUI(userData) {
@@ -1278,13 +1278,8 @@
 
                 // Création de la commande VIP
                 await addDoc(collection(db, "orders"), {
-                    userPhone: user.phone,
-                    vipName: name,
-                    price: price,
-                    dailyIncome: daily,
-                    status: "active",
-                    timestamp: Date.now(),
-                    lastCollectionTime: Date.now()
+                    userPhone: user.phone, vipName: name, price: price, dailyIncome: daily,
+                    status: "active", timestamp: Date.now(), lastCollectionTime: Date.now()
                 });
 
                 showToast(`VIP ${name} activé avec succès !`, "success");
@@ -1548,11 +1543,7 @@
                     const userSnap = await getDoc(userRef);
                     const userData = userSnap.data();
 
-                    await updateDoc(userRef, { 
-                        balance: increment(amount),
-                        hasMadeFirstDeposit: true 
-                    });
-                    
+                    await updateDoc(userRef, { balance: increment(amount), hasMadeFirstDeposit: true });
                     await updateDoc(doc(db, "recharges", rechargeId), { status: "completed" });
 
                     if (!userData.hasMadeFirstDeposit) {
@@ -1564,27 +1555,21 @@
                         if (parrainA) {
                             const bonusA = amount * 0.25;
                             await updateDoc(doc(db, "users", parrainA.phone), {
-                                balance: increment(bonusA),
-                                referralBalance: increment(bonusA),
-                                totalEarnings: increment(bonusA)
+                                balance: increment(bonusA), referralBalance: increment(bonusA), totalEarnings: increment(bonusA)
                             });
 
                             const parrainB = allUsers.find(u => u.myReferralCode === parrainA.referredBy);
                             if (parrainB) {
                                 const bonusB = amount * 0.02;
                                 await updateDoc(doc(db, "users", parrainB.phone), {
-                                    balance: increment(bonusB),
-                                    referralBalance: increment(bonusB),
-                                    totalEarnings: increment(bonusB)
+                                    balance: increment(bonusB), referralBalance: increment(bonusB), totalEarnings: increment(bonusB)
                                 });
 
                                 const parrainC = allUsers.find(u => u.myReferralCode === parrainB.referredBy);
                                 if (parrainC) {
                                     const bonusC = amount * 0.01;
                                     await updateDoc(doc(db, "users", parrainC.phone), {
-                                        balance: increment(bonusC),
-                                        referralBalance: increment(bonusC),
-                                        totalEarnings: increment(bonusC)
+                                        balance: increment(bonusC), referralBalance: increment(bonusC), totalEarnings: increment(bonusC)
                                     });
                                 }
                             }
@@ -1775,10 +1760,7 @@
 
             document.getElementById('final-confirm-withdraw-btn').onclick = async () => {
                 try {
-                    await updateDoc(doc(db, "users", user.phone), { 
-                        balance: increment(-amount),
-                        totalWithdraw: increment(amount)
-                    });
+                    await updateDoc(doc(db, "users", user.phone), { balance: increment(-amount), totalWithdraw: increment(amount) });
                     await addDoc(collection(db, "withdrawals"), {
                         userPhone: user.phone, withdrawName: name, withdrawPhone: phone,
                         amount, realAmount, network: selectedWithdrawNet, status: "pending", timestamp: Date.now()
