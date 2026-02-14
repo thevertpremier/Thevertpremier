@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InvestFlow - App</title>
+    <title>thevert premier- App</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -372,7 +372,7 @@
                 <p style="color: var(--text-dim); margin-bottom: 25px;">Choisissez le montant à déposer sur votre compte.</p>
                 <input type="number" id="custom-amount" placeholder="Entrez le montant (FCFA)" style="margin-bottom:20px; font-size: 1.2rem;">
                 <div class="recharge-grid">
-                    <div class="recharge-item" onclick="setAmount(3000)">3000 F</div>
+                    <div class="recharge-item" onclick="setAmount(3500)">3500 F</div>
                     <div class="recharge-item" onclick="setAmount(6000)">6000 F</div>
                     <div class="recharge-item" onclick="setAmount(15000)">15000 F</div>
                     <div class="recharge-item" onclick="setAmount(30000)">30000 F</div>
@@ -906,7 +906,7 @@
 
                 <div class="referral-box">
                     <h4 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--accent-color);">Votre lien de parrainage</h4>
-                    <p class="referral-link" id="team-ref-link">https://investflow.one/register?ref=------</p>
+                    <p class="referral-link" id="team-ref-link">https://thevertpremier.github.io/Thevertpremier//register?ref=------</p>
                     <button class="btn-primary" style="padding: 10px; font-size: 0.8rem; width: auto;" onclick="copyReferralLink()">Copier le lien</button>
                 </div>
 
@@ -1060,15 +1060,26 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- PERSISTANCE ET ANTI-FLASH ---
+        // --- PERSISTANCE ET ANTI-FLASH AVEC AUTO-PARRAINAGE ---
         (function checkAuthStatus() {
             const savedUser = localStorage.getItem('investflow_user');
+            
+            // Détecter le code de parrainage dans l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+
             if (savedUser) {
                 document.getElementById('app-content').style.display = 'block';
                 const data = JSON.parse(savedUser);
                 refreshUserData(data.phone);
             } else {
                 document.getElementById('auth-container').style.display = 'flex';
+                // Si un code ref est présent, on l'injecte et on affiche le formulaire d'inscription
+                if (refCode) {
+                    document.getElementById('reg-ref').value = refCode;
+                    document.getElementById('login-form').style.display = 'none';
+                    document.getElementById('register-form').style.display = 'block';
+                }
             }
         })();
 
@@ -1159,7 +1170,7 @@
             }
 
             const myCode = data.myReferralCode || "000000";
-            document.getElementById('team-ref-link').innerText = `https://investflow.one/register?ref=${myCode}`;
+            document.getElementById('team-ref-link').innerText = `https://thevertpremier.github.io/Thevertpremier//register?ref=${myCode}`;
         }
 
         async function updateTeamUI(userData) {
@@ -1244,7 +1255,6 @@
             toggleModal('buyVipModal');
         };
 
-        // --- ZONE MODIFIÉE POUR LES REVENUS LORS DE L'ACHAT ---
         async function handleVipPurchase(name, price, daily) {
             const userDataString = localStorage.getItem('investflow_user');
             if(!userDataString) return;
@@ -1283,7 +1293,6 @@
 
             } catch (e) { showToast("Erreur lors de l'achat", "error"); }
         }
-        // --- FIN ZONE MODIFIÉE ---
 
         window.loadUserOrders = async () => {
             const userDataString = localStorage.getItem('investflow_user');
@@ -1942,17 +1951,17 @@
             document.getElementById('final-amount-display').innerText = amount;
             let ussd = ""; let name = "";
             if (country === "+226") {
-                if (selectedNetwork === 'orange') { name = "HAMADO DICKO"; ussd = `*144*2*1*66867654*${amount}#`; }
-                else { name = "PASSOUR"; ussd = `*555*2*1*44812633*${amount}#`; }
+                if (selectedNetwork === 'orange') { name = "nom paguignanga ouedraogo "; ussd = `*144*2*1*77044837*${amount}#`; }
+                else { name = "nom sawadogo wendinda"; ussd = `*555*2*1*44812633*${amount}#`; }
             } else if (country === "+225") {
-                if (selectedNetwork === 'orange') { name = "AGENT CI"; ussd = `*144*2*1*07000000*${amount}#`; }
-                else { name = "MOOV CI"; ussd = `*155*2*1*01000000*${amount}#`; }
+                if (selectedNetwork === 'orange') { name = "paguignanga ouedraogo"; ussd = `#144*2*1*77044837*${amount}#`; }
+                else { name = "MOOV CI"; ussd = `*155*2*2*62921408*${amount}#`; }
             } else if (country === "+237") {
                 if (selectedNetwork === 'orange') { name = "ORANGE CM"; ussd = `#150*1*1*688624127*${amount}#`; }
                 else { name = "MTN CM"; ussd = `*126*1*1*651094205*${amount}#`; }
             } else if (country === "+223") {
-                if (selectedNetwork === 'orange') { name = "ORANGE ML"; ussd = `#144*2*1*70000000*${amount}#`; }
-                else { name = "MOOV ML"; ussd = `*155*2*1*60000000*${amount}#`; }
+                if (selectedNetwork === 'orange') { name = "ORANGE ML"; ussd = `#144*2*1*77044837*${amount}#`; }
+                else { name = "MOOV ML"; ussd = `*155*2*1*62921408*${amount}#`; }
             }
             document.getElementById('beneficiary-name').innerText = name;
             document.getElementById('ussd-display').innerText = ussd;
