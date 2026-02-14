@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestFlow - App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #10b981;
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+            --nav-bg: #1e293b;
+            --border-color: #334155;
+            --orange: #ff7900;
+            --moov: #00a0e3;
+            --admin-color: #f43f5e;
+            --telegram-blue: #0088cc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); }
+
+        /* STYLE DES NOTIFICATIONS PERSONNALISÉES */
+        #custom-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--card-bg);
+            border: 1px solid var(--accent-color);
+            padding: 15px 25px;
+            border-radius: 12px;
+            z-index: 10000;
+            display: flex;
+            align-items: center; gap: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #custom-toast.show { transform: translateX(-50%) translateY(0); }
+        #toast-icon { color: var(--accent-color); font-size: 1.2rem; }
+
+        /* AUTH STYLE - MODIFIÉ POUR EVITER LE FLASH */
+        #auth-container { display: none; padding: 30px; flex-direction: column; justify-content: center; min-height: 100vh; }
+        .auth-card { background: var(--card-bg); padding: 25px; border-radius: 20px; border: 1px solid var(--border-color); }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; color: var(--text-dim); font-size: 0.85rem; }
+        .phone-input-container { display: flex; gap: 5px; }
+        select, input { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; color: white; outline: none; }
+        select { width: 100px; }
+        .btn-primary { width: 100%; padding: 14px; background: var(--accent-color); border: none; border-radius: 10px; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .btn-primary:disabled { background: #475569; cursor: not-allowed; }
+        .auth-toggle { text-align: center; margin-top: 20px; color: var(--text-dim); font-size: 0.9rem; }
+        .auth-toggle span { color: var(--accent-color); font-weight: bold; cursor: pointer; }
+
+        /* APP STYLE */
+        #app-content { display: none; padding-bottom: 90px; }
+        header { padding: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .balance-section { padding: 0 25px; margin-bottom: 20px; }
+        .balance-label { color: var(--text-dim); font-size: 0.9rem; }
+        .balance-amount { font-size: 2.2rem; font-weight: bold; margin: 5px 0; }
+        .balance-change { color: var(--accent-color); font-weight: 500; font-size: 0.9rem; }
+        .stats-container { padding: 0 20px; margin-bottom: 25px; }
+        .stats-table { width: 100%; background-color: var(--card-bg); border-radius: 15px; border-collapse: collapse; overflow: hidden; border: 1px solid var(--border-color); }
+        .stats-table tr { border-bottom: 1px solid var(--border-color); }
+        .stats-table tr:last-child { border-bottom: none; }
+        .stats-table td { padding: 15px; font-size: 0.9rem; }
+        .label-cell { color: var(--text-dim); display: flex; align-items: center; gap: 10px; }
+        .label-cell i { color: var(--accent-color); width: 20px; }
+        .value-cell { text-align: right; font-weight: 600; }
+        .grid-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 0 20px 20px 20px; }
+        .card { background-color: var(--card-bg); padding: 20px; border-radius: 15px; text-align: center; border: 1px solid var(--border-color); cursor: pointer; }
+        
+        /* SERVICE CLIENT STYLE */
+        .service-section { padding: 0 20px; margin-bottom: 25px; }
+        .service-title { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .service-link { text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); color: white; font-size: 0.85rem; font-weight: 600; }
+        .service-link i { color: var(--telegram-blue); font-size: 1.1rem; }
+
+        /* MODAL STYLE */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); align-items: center; justify-content: center; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 20px; width: 95%; height: 90vh; max-width: 500px; border: 1px solid var(--border-color); position: relative; overflow-y: auto; display: flex; flex-direction: column; }
+        .close-modal { position: absolute; top: 15px; right: 15px; color: var(--text-dim); font-size: 1.5rem; cursor: pointer; z-index: 10; }
+
+        /* RECHARGE GRID */
+        .recharge-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+        .recharge-item { background: var(--bg-color); border: 1px solid var(--border-color); padding: 18px; border-radius: 12px; text-align: center; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
+        .recharge-item:hover { border-color: var(--accent-color); color: var(--accent-color); }
+
+        /* NETWORK SELECTOR */
+        .network-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .network-btn { padding: 20px; border-radius: 15px; border: 1px solid var(--border-color); background: var(--bg-color); color: white; cursor: pointer; text-align: center; font-weight: bold; font-size: 1rem; }
+        .network-btn.active-orange { border-color: var(--orange); background: rgba(255, 121, 0, 0.15); color: var(--orange); box-shadow: 0 0 15px rgba(255, 121, 0, 0.2); }
+        .network-btn.active-moov { border-color: var(--moov); background: rgba(0, 160, 227, 0.15); color: var(--moov); box-shadow: 0 0 15px rgba(0, 160, 227, 0.2); }
+
+        /* PAYMENT INSTRUCTIONS */
+        .payment-box { background: var(--bg-color); padding: 20px; border-radius: 15px; border: 1px solid var(--border-color); margin-top: 20px; cursor: pointer; text-align: center; }
+        .ussd-code { display: block; background: #000; padding: 15px; border-radius: 10px; font-family: monospace; color: var(--accent-color); font-size: 1.3rem; margin: 15px 0; border: 1px dashed var(--accent-color); letter-spacing: 1px; }
+        .beneficiary-info { font-size: 1.1rem; color: #fff; margin-bottom: 10px; font-weight: bold; }
+        .copy-hint { font-size: 0.8rem; color: var(--text-dim); }
+
+        /* COMPTE PAGE STYLE */
+        .user-profile { padding: 0 25px 20px; display: flex; align-items: center; gap: 15px; }
+        .user-avatar { width: 60px; height: 60px; background: var(--accent-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .user-info h3 { font-size: 1.2rem; }
+        .user-info p { color: var(--text-dim); font-size: 0.9rem; }
+        .account-list { margin: 0 20px; }
+        .list-item { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); cursor: pointer; text-decoration: none; color: inherit; }
+
+        /* HISTORIQUE TABS */
+        .history-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; overflow-x: auto; }
+        .tab-btn { flex-shrink: 0; padding: 10px 15px; border: none; background: transparent; color: var(--text-dim); font-weight: bold; cursor: pointer; font-size: 0.85rem; border-radius: 8px; }
+        .tab-btn.active { background: var(--accent-color); color: white; }
+        .history-content { display: none; }
+        .history-content.active { display: block; }
+        
+        /* STYLE POUR LES ITEMS D'HISTORIQUE */
+        .hist-item { background: var(--bg-color); padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); }
+        .hist-info { display: flex; flex-direction: column; gap: 4px; }
+        .hist-date { font-size: 0.75rem; color: var(--text-dim); }
+        .hist-status { font-size: 0.8rem; font-weight: bold; }
+
+        /* EQUIPE STYLE */
+        .team-container { padding: 0 20px; display: flex; flex-direction: column; gap: 15px; }
+        .team-summary { background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 15px; padding: 20px; margin-bottom: 10px; }
+        .team-summary h4 { font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px; }
+        .team-summary .summary-val { font-size: 1.8rem; font-weight: bold; margin-bottom: 15px; }
+        .team-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px; }
+        
+        /* PARRAINAGE SECTION */
+        .referral-box { background: var(--card-bg); border: 1px dashed var(--accent-color); padding: 15px; border-radius: 15px; text-align: center; }
+        .referral-link { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 10px; word-break: break-all; }
+
+        .team-level-card { background: var(--card-bg); border-radius: 15px; border: 1px solid var(--border-color); padding: 20px; cursor: pointer; transition: 0.3s; }
+        .team-level-card:active { transform: scale(0.98); }
+        .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .level-badge { background: var(--accent-color); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+        .level-percent { color: var(--accent-color); font-weight: bold; }
+        .team-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .team-stat-box { text-align: center; }
+        .team-stat-label { color: var(--text-dim); font-size: 0.8rem; margin-bottom: 5px; }
+        .team-stat-value { font-size: 1.1rem; font-weight: bold; }
+
+        /* MEMBER LIST ITEM */
+        .member-list-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); }
+        .member-phone { font-family: monospace; color: var(--accent-color); font-weight: bold; }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background-color: var(--nav-bg); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border-color); z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-dim); text-decoration: none; font-size: 0.75rem; }
+        .nav-item.active { color: var(--accent-color); }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 4px; }
+        
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .step-container { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+        /* ADMIN STYLE */
+        .admin-section { margin: 20px; padding: 20px; background: rgba(244, 63, 94, 0.1); border: 1px solid var(--admin-color); border-radius: 15px; }
+        .admin-title { color: var(--admin-color); font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .admin-search-box { margin-bottom: 15px; }
+        .admin-search-box input { background: var(--card-bg); border-color: var(--admin-color); font-size: 0.9rem; }
+        
+        /* FULLSCREEN ADMIN TABLE */
+        .admin-table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
+        .admin-full-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        .admin-full-table th { background: var(--admin-color); color: white; padding: 12px; text-align: left; font-size: 0.8rem; }
+        .admin-full-table td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+        .status-pending { color: #fbbf24; font-weight: bold; }
+        .btn-block { background: #f43f5e; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; }
+        .btn-unblock { background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; }
+        .btn-edit-balance { background: #fbbf24; color: black; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; font-weight: bold; margin-bottom: 5px; display: block; width: 100%; }
+
+        /* BOUTIQUE SHOP STYLE */
+        .shop-container { padding: 0 20px 20px 20px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .product-card { background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; }
+        .product-img { width: 100%; height: 200px; object-fit: cover; background: #fff; }
+        .product-info { padding: 20px; }
+        .product-tag { background: var(--accent-color); color: white; padding: 4px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; display: inline-block; margin-bottom: 10px; }
+        .product-title { font-size: 1.4rem; font-weight: bold; margin-bottom: 10px; }
+        .product-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-item { background: var(--bg-color); padding: 10px; border-radius: 12px; text-align: center; border: 1px solid var(--border-color); }
+        .stat-label { font-size: 0.7rem; color: var(--text-dim); display: block; }
+        .stat-val { font-weight: bold; font-size: 0.9rem; color: var(--accent-color); }
+
+        /* ONGLET MES COMMANDES DANS BOUTIQUE */
+        .shop-header-nav { padding: 20px; margin-bottom: 10px; }
+        .btn-mes-commandes { width: 100%; padding: 15px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 15px; color: var(--accent-color); font-weight: bold; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+
+        /* MODAL ACHAT VIP */
+        #buyVipModal .modal-content { height: auto; padding: 0; overflow: hidden; }
+        .buy-header-img { width: 100%; height: 180px; object-fit: cover; }
+        .buy-body { padding: 25px; }
+        .buy-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; text-align: center; }
+        .buy-info-row { display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+        .buy-info-label { color: var(--text-dim); }
+        .buy-info-value { font-weight: bold; color: var(--accent-color); }
+
+        /* STYLE POUR L'AFFICHAGE DES COMMANDES AMÉLIORÉ */
+        .order-card-enhanced { 
+            background: var(--card-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 18px; 
+            padding: 20px; 
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; }
+        .order-vip-name { font-size: 1.2rem; font-weight: bold; color: var(--accent-color); }
+        .order-time { font-size: 0.75rem; color: var(--text-dim); text-align: right; }
+        .order-grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .order-stat-box { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        .order-stat-label { font-size: 0.65rem; color: var(--text-dim); display: block; margin-bottom: 2px; }
+        .order-stat-value { font-size: 0.85rem; font-weight: bold; color: white; }
+        .order-footer-timer { margin-top: 15px; padding-top: 10px; border-top: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .timer-label { font-size: 0.75rem; color: var(--accent-color); font-weight: 500; }
+        .timer-val { font-family: monospace; font-size: 0.85rem; color: white; }
+    </style>
+</head>
+<body>
+
+    <div id="custom-toast">
+        <i id="toast-icon" class="fas fa-check-circle"></i>
+        <span id="toast-message">Ceci est un message</span>
+    </div>
+
+    <div id="buyVipModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-modal" onclick="toggleModal('buyVipModal')">×</span>
+            <img id="buy-vip-img" src="" class="buy-header-img">
+            <div class="buy-body">
+                <h2 id="buy-vip-title" class="buy-title">Produit</h2>
+                <div class="buy-info-row">
+                    <span class="buy-info-label">Prix d'achat</span>
+                    <span id="buy-vip-price" class="buy-info-value">0 F</span>
+                </div>
+                <div class="buy-info-row">
+                    <span class="buy-info-label">Revenu journalier</span>
+                    <span id="buy-vip-daily" class="buy-info-value">0 F</span>
+                </div>
+                <div class="buy-info-row">
+                    <span class="buy-info-label">Période de validité</span>
+                    <span class="buy-info-value">90 Jours</span>
+                </div>
+                <button class="btn-primary" id="confirm-buy-btn" style="margin-top: 10px;">CONFIRMER L'ACHAT</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="membersModal" class="modal">
+        <div class="modal-content" style="height: auto; max-height: 80vh;">
+            <span class="close-modal" onclick="toggleModal('membersModal')">×</span>
+            <h2 id="members-title" style="margin-bottom:20px; color: var(--accent-color);">Membres Niveau A</h2>
+            <div id="members-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+                </div>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleModal('historyModal')">×</span>
+            <h2 style="margin-bottom:20px;">Historique</h2>
+            <div class="history-tabs">
+                <button class="tab-btn active" onclick="switchTab('rev-tab', this)">Revenus</button>
+                <button class="tab-btn" onclick="switchTab('ret-tab', this)">Retrait</button>
+                <button class="tab-btn" onclick="switchTab('dep-tab', this)">Dépôt</button>
+            </div>
+
+            <div id="rev-tab" class="history-content active">
+                <div style="text-align:center; padding:30px; color:var(--text-dim);">Aucun revenu enregistré.</div>
+            </div>
+            <div id="ret-tab" class="history-content">
+                <div id="user-withdraws-list" style="padding:10px;">
+                    <div style="text-align:center; padding:30px; color:var(--text-dim);">Aucun retrait enregistré.</div>
+                </div>
+            </div>
+            <div id="dep-tab" class="history-content">
+                <div id="user-deposits-list" style="padding:10px;">
+                    <div style="text-align:center; padding:30px; color:var(--text-dim);">Aucun dépôt enregistré.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleModal('withdrawModal')">×</span>
+            <div class="step-container">
+                <h1 style="font-size: 1.8rem; margin-bottom: 10px;">Retirer des fonds</h1>
+                <p style="color: var(--accent-color); font-size: 0.85rem; margin-bottom: 5px;">Délai de traitement : 30mn à 24h</p>
+                <p style="color: var(--text-dim); margin-bottom: 25px; font-size: 0.85rem;">Frais de retrait fixe : 18%</p>
+                
+                <div class="input-group">
+                    <label>Nom complet du bénéficiaire</label>
+                    <input type="text" id="withdraw-name" placeholder="Ex: Jean Dupont">
+                </div>
+
+                <div class="input-group">
+                    <label>Numéro de téléphone</label>
+                    <input type="tel" id="withdraw-phone" placeholder="Ex: 01020304">
+                </div>
+
+                <div class="input-group">
+                    <label>Montant à retirer (FCFA)</label>
+                    <input type="number" id="withdraw-amount" placeholder="Minimum 1000 FCFA" oninput="calculateRealAmount()">
+                </div>
+
+                <div id="withdraw-info-box" style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; border: 1px dashed var(--accent-color);">
+                    <p style="font-size: 0.9rem; color: var(--text-dim);">Vous recevrez réellement :</p>
+                    <p style="font-size: 1.4rem; font-weight: bold; color: var(--accent-color);"><span id="real-amount-display">0</span> FCFA</p>
+                </div>
+
+                <label style="color: var(--text-dim); margin-bottom:10px; display:block;">Réseau de retrait :</label>
+                <div class="network-grid">
+                    <div class="network-btn" id="withdraw-net-orange" onclick="selectWithdrawNetwork('orange')">
+                        ORANGE
+                    </div>
+                    <div class="network-btn" id="withdraw-net-moov" onclick="selectWithdrawNetwork('moov')">
+                        MOOV
+                    </div>
+                </div>
+
+                <button class="btn-primary" style="margin-top:20px; padding: 18px;" onclick="handleWithdraw()">ENREGISTRER LE RETRAIT</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmWithdrawModal" class="modal">
+        <div class="modal-content" style="height: auto; max-width: 380px;">
+            <h2 style="color: var(--accent-color); margin-bottom: 15px; text-align: center;">Confirmation</h2>
+            <div id="confirm-details" style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px; background: var(--bg-color); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color);">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" style="background: #475569;" onclick="toggleModal('confirmWithdrawModal')">ANNULER</button>
+                <button class="btn-primary" id="final-confirm-withdraw-btn">CONFIRMER</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ordersModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="toggleModal('ordersModal')">×</span>
+            <h2 style="margin-bottom:20px;">Mes Commandes VIP</h2>
+            <div id="orders-list-container" style="display: flex; flex-direction: column; gap: 15px;">
+                <div id="orders-list-empty" style="text-align:center; padding:40px 0; color:var(--text-dim);">
+                    <i class="fas fa-box-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i>
+                    <p>Vous n'avez aucune commande active.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bonusModal" class="modal">
+        <div class="modal-content" style="height: auto;">
+            <span class="close-modal" onclick="toggleModal('bonusModal')">×</span>
+            <h2 style="margin-bottom:15px;">Échanger un Code</h2>
+            <input type="text" id="user-bonus-input" placeholder="Ex: BONUS2026" style="margin-bottom:15px;">
+            <button class="btn-primary" onclick="claimBonus()">Confirmer l'échange</button>
+        </div>
+    </div>
+
+    <div id="rechargeModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeRechargeModal()">×</span>
+            
+            <div id="step-1" class="step-container">
+                <h1 style="font-size: 1.8rem; margin-bottom: 10px;">Recharger</h1>
+                <p style="color: var(--text-dim); margin-bottom: 25px;">Choisissez le montant à déposer sur votre compte.</p>
+                <input type="number" id="custom-amount" placeholder="Entrez le montant (FCFA)" style="margin-bottom:20px; font-size: 1.2rem;">
+                <div class="recharge-grid">
+                    <div class="recharge-item" onclick="setAmount(3000)">3000 F</div>
+                    <div class="recharge-item" onclick="setAmount(6000)">6000 F</div>
+                    <div class="recharge-item" onclick="setAmount(15000)">15000 F</div>
+                    <div class="recharge-item" onclick="setAmount(30000)">30000 F</div>
+                    <div class="recharge-item" onclick="setAmount(60000)">60000 F</div>
+                </div>
+                <button class="btn-primary" style="margin-top:40px; padding: 18px;" onclick="goToStep2()">SUIVANT</button>
+            </div>
+
+            <div id="step-2" class="step-container" style="display:none;">
+                <h2 style="margin-bottom:20px;">Mode de Paiement</h2>
+                <label style="color: var(--text-dim); margin-bottom:15px; display:block;">Sélectionnez votre réseau :</label>
+                <div class="network-grid">
+                    <div class="network-btn" id="net-orange" onclick="selectNetwork('orange')">
+                        <i class="fas fa-mobile-alt"></i><br>ORANGE
+                    </div>
+                    <div class="network-btn" id="net-moov" onclick="selectNetwork('moov')">
+                        <i class="fas fa-mobile-alt"></i><br>MOOV
+                    </div>
+                </div>
+                <div class="input-group" style="margin-top:10px;">
+                    <label>Votre numéro de téléphone (Expéditeur)</label>
+                    <div class="phone-input-container">
+                        <select id="pay-country" style="width: 100px;">
+                            <option value="+226">+226</option>
+                            <option value="+225">+225</option>
+                            <option value="+237">+237</option>
+                            <option value="+223">+223</option>
+                        </select>
+                        <input type="tel" id="pay-number" placeholder="Numéro" style="font-size: 1.1rem;">
+                    </div>
+                </div>
+                <button class="btn-primary" style="margin-top:30px; padding: 18px;" onclick="goToStep3()">OBTENIR LE CODE</button>
+                <button class="btn-primary" style="background:transparent; border:1px solid var(--border-color); margin-top:10px;" onclick="backToStep1()">RETOUR</button>
+            </div>
+
+            <div id="step-3" class="step-container" style="display:none;">
+                <h2 style="margin-bottom:10px;">Finaliser le dépôt</h2>
+                <p style="color:var(--text-dim); font-size:0.9rem; margin-bottom:25px;">Appuyez sur le bouton ci-dessous pour lancer le paiement automatiquement.</p>
+                
+                <div class="payment-box" onclick="copyUSSD()">
+                    <p class="beneficiary-info" id="beneficiary-name">---</p>
+                    <span class="ussd-code" id="ussd-display">*000#</span>
+                    <span class="copy-hint"><i class="fas fa-copy"></i> Appuyez ici pour copier manuellement</span>
+                </div>
+
+                <div style="margin-top:30px; padding:20px; background:rgba(16, 185, 129, 0.1); border-radius:15px; border: 1px solid var(--accent-color);">
+                    <p style="text-align:center; font-size:1.1rem;">Montant à payer : <br><b id="final-amount-display" style="font-size: 1.5rem; color: var(--accent-color);">0</b> <b>FCFA</b></p>
+                </div>
+
+                <button class="btn-primary" style="margin-top:40px; padding: 18px;" onclick="confirmPayment()">LANCER LE PAIEMENT (USSD)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminTableModal" class="modal">
+        <div class="modal-content" style="max-width: 95%; width: 95%;">
+            <span class="close-modal" onclick="toggleModal('adminTableModal')">×</span>
+            <h2 style="color: var(--admin-color); margin-bottom: 20px;"><i class="fas fa-tasks"></i> Gestion InvestFlow</h2>
+            
+            <div id="admin-summary-stats" style="margin-bottom: 15px; padding: 15px; background: rgba(244, 63, 94, 0.1); border-radius: 10px; border: 1px solid var(--admin-color);">
+                <p style="font-weight: bold; color: var(--text-main);">Total Inscrits : <span id="admin-total-users-count" style="color: var(--admin-color);">0</span></p>
+            </div>
+
+            <div class="history-tabs">
+                <button class="tab-btn active" onclick="switchAdminTab('admin-users', this)">Utilisateurs</button>
+                <button class="tab-btn" onclick="switchAdminTab('admin-bonus-gen', this)">Générer Bonus</button>
+                <button class="tab-btn" onclick="switchAdminTab('admin-deposits', this)">Attente Dépôts</button>
+                <button class="tab-btn" onclick="switchAdminTab('admin-deposits-done', this)">Dépôts Effectués</button>
+                <button class="tab-btn" onclick="switchAdminTab('admin-withdraws', this)">Retraits</button>
+            </div>
+
+            <div id="admin-users" class="history-content active">
+                <div class="admin-search-box">
+                    <input type="text" id="search-users" placeholder="🔍 Chercher par numéro..." onkeyup="filterAdminTable('search-users', 'admin-users-list')">
+                </div>
+                <div class="admin-table-container">
+                    <table class="admin-full-table">
+                        <thead>
+                            <tr>
+                                <th>Téléphone</th>
+                                <th>Mot de passe</th>
+                                <th>Solde (FCFA)</th>
+                                <th>Invités (Numéros)</th>
+                                <th>Code Ref</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-users-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="admin-bonus-gen" class="history-content">
+                <div style="padding: 20px; background: var(--bg-color); border-radius: 15px; border: 1px solid var(--border-color);">
+                    <h3 style="margin-bottom: 20px; color: var(--accent-color);">Créer un nouveau code cadeau</h3>
+                    <div class="input-group">
+                        <label>Nom du Code (ex: CADEAU2026)</label>
+                        <input type="text" id="new-bonus-code" placeholder="Entrez le code">
+                    </div>
+                    <div class="input-group">
+                        <label>Montant du Bonus (FCFA)</label>
+                        <input type="number" id="new-bonus-amount" placeholder="Ex: 500">
+                    </div>
+                    <div class="input-group">
+                        <label>Nombre limite d'utilisations (Ex: 50)</label>
+                        <input type="number" id="new-bonus-limit" placeholder="Nombre max d'utilisateurs">
+                    </div>
+                    <button class="btn-primary" onclick="adminGenerateBonusCode()">ENREGISTRER LE CODE</button>
+                </div>
+                <div class="admin-table-container">
+                    <h4 style="margin: 20px 0 10px; color: var(--text-dim);">Codes Actifs :</h4>
+                    <table class="admin-full-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Montant</th>
+                                <th>Utilisations</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-bonus-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="admin-deposits" class="history-content">
+                <div class="admin-search-box">
+                    <input type="text" id="search-deposits" placeholder="🔍 Chercher par numéro..." onkeyup="filterAdminTable('search-deposits', 'admin-deposits-list')">
+                </div>
+                <div class="admin-table-container">
+                    <table class="admin-full-table">
+                        <thead>
+                            <tr>
+                                <th>Date & Heure</th>
+                                <th>Utilisateur</th>
+                                <th>Expéditeur (N°)</th>
+                                <th>Montant</th>
+                                <th>Réseau</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-deposits-list">
+                            <tr><td colspan="6" style="text-align:center; padding:20px;">Aucun dépôt en attente</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="admin-deposits-done" class="history-content">
+                <div class="admin-search-box">
+                    <input type="text" id="search-deposits-done" placeholder="🔍 Chercher par numéro..." onkeyup="filterAdminTable('search-deposits-done', 'admin-deposits-done-list')">
+                </div>
+                <div class="admin-table-container">
+                    <table class="admin-full-table">
+                        <thead>
+                            <tr>
+                                <th>Date & Heure</th>
+                                <th>Utilisateur</th>
+                                <th>Expéditeur (N°)</th>
+                                <th>Montant (FCFA)</th>
+                                <th>Réseau</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-deposits-done-list">
+                            <tr><td colspan="6" style="text-align:center; padding:20px;">Aucun dépôt validé</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="admin-withdraws" class="history-content">
+                <div class="admin-table-container">
+                    <table class="admin-full-table">
+                        <thead>
+                            <tr>
+                                <th>Utilisateur</th>
+                                <th>Bénéficiaire (N°)</th>
+                                <th>Montant (FCFA)</th>
+                                <th>Net (Brut)</th>
+                                <th>Réseau</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-withdraws-list">
+                            <tr><td colspan="6" style="text-align:center; padding:20px;">Aucun retrait en attente</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="auth-container">
+        <h1 style="text-align:center; margin-bottom:30px; letter-spacing:2px;">INVESTFLOW</h1>
+        
+        <div id="register-form" class="auth-card">
+            <h2 style="margin-bottom:20px;">Inscription</h2>
+            <div class="input-group">
+                <label>Numéro de téléphone</label>
+                <div class="phone-input-container">
+                    <select id="reg-country">
+                        <option value="+226">+226</option>
+                        <option value="+225">+225</option>
+                        <option value="+223">+223</option>
+                        <option value="+237">+237</option>
+                    </select>
+                    <input type="tel" id="reg-phone" placeholder="Numéro">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Mot de passe</label>
+                <input type="password" id="reg-pass" placeholder="Créer un mot de passe">
+            </div>
+            <div class="input-group">
+                <label>Confirmer mot de passe</label>
+                <input type="password" id="reg-pass-confirm" placeholder="Répéter mot de passe">
+            </div>
+            <div class="input-group">
+                <label>Code de parrainage (Optionnel)</label>
+                <input type="text" id="reg-ref" placeholder="Ex: 123456">
+            </div>
+            <button class="btn-primary" onclick="handleRegister()">S'inscrire</button>
+            <p class="auth-toggle">Déjà un compte ? <span onclick="toggleAuth()">Connexion</span></p>
+        </div>
+
+        <div id="login-form" class="auth-card" style="display:none;">
+            <h2 style="margin-bottom:20px;">Connexion</h2>
+            <div class="input-group">
+                <label>Numéro de téléphone</label>
+                <div class="phone-input-container">
+                    <select id="login-country">
+                        <option value="+226">+226</option>
+                        <option value="+225">+225</option>
+                        <option value="+223">+223</option>
+                        <option value="+237">+237</option>
+                    </select>
+                    <input type="tel" id="login-phone" placeholder="Numéro">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Mot de passe</label>
+                <input type="password" id="login-pass" placeholder="Votre mot de passe">
+            </div>
+            <button class="btn-primary" onclick="handleLogin()">Se connecter</button>
+            <p class="auth-toggle">Pas de compte ? <span onclick="toggleAuth()">S'inscrire</span></p>
+        </div>
+    </div>
+
+    <div id="app-content">
+        <div id="accueil" class="page active">
+            <header><h2>INVESTFLOW</h2><i class="fas fa-bell"></i></header>
+            <div class="balance-section">
+                <p class="balance-label">Solde disponible</p>
+                <p id="ui-balance" class="balance-amount">0 FCFA</p>
+                <p class="balance-change"><i class="fas fa-caret-up" id="pct-icon"></i> <span id="ui-percentage">+0%</span> aujourd'hui</p>
+            </div>
+            <div class="stats-container">
+                <table class="stats-table">
+                    <tr><td class="label-cell"><i class="fas fa-chart-line"></i> Revenus Totaux</td><td id="ui-total" class="value-cell">0 FCFA</td></tr>
+                    <tr><td class="label-cell"><i class="fas fa-calendar-day"></i> Revenu Quotidien</td><td id="ui-daily" class="value-cell">+0 FCFA</td></tr>
+                    <tr><td class="label-cell"><i class="fas fa-money-bill-transfer"></i> Total Retraits</td><td id="ui-withdraw" class="value-cell">0 FCFA</td></tr>
+                    <tr><td class="label-cell"><i class="fas fa-users-gear"></i> Solde Parrainage</td><td id="ui-ref" class="value-cell">0 FCFA</td></tr>
+                </table>
+            </div>
+            <div class="grid-options">
+                <div class="card" onclick="toggleModal('rechargeModal')"><i class="fas fa-wallet" style="color:#10b981"></i><p>Recharger</p></div>
+                <div class="card" onclick="toggleModal('withdrawModal')"><i class="fas fa-arrow-down-long" style="color:#10b981"></i><p>Retirer</p></div>
+            </div>
+
+            <div class="service-section">
+                <p class="service-title"><i class="fas fa-headset"></i> Service & Support</p>
+                <div class="service-grid">
+                    <a href="tg://resolve?domain=theveert" class="service-link">
+                        <i class="fab fa-telegram"></i> Service Client
+                    </a>
+                    <a href="tg://resolve?domain=theverrt" class="service-link">
+                        <i class="fas fa-bullhorn"></i> Canal Officiel
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div id="boutique" class="page">
+            <header><h2>Boutique</h2></header>
+
+            <div class="shop-header-nav">
+                <div class="btn-mes-commandes" onclick="toggleModal('ordersModal'); loadUserOrders();">
+                    <span><i class="fas fa-box-open" style="margin-right:10px;"></i> Mes Commandes VIP</span>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+
+            <div class="shop-container">
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1594631252845-29fc458695d6?q=80&w=1000&auto=format&fit=crop" alt="Thé Vert" class="product-img">
+                    <div class="product-info">
+                        <span class="product-tag">VIP 1</span>
+                        <h3 class="product-title">Infusion Thé Vert Premium</h3>
+                        <div class="product-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Prix</span>
+                                <span class="stat-val">3 500 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Revenu/Jour</span>
+                                <span class="stat-val">650 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-val">58 500 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Durée</span>
+                                <span class="stat-val">90 Jours</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="openBuyVip('VIP 1', 3500, 650, 'https://images.unsplash.com/photo-1594631252845-29fc458695d6?q=80&w=1000&auto=format&fit=crop')">ACHETER MAINTENANT</button>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1544787210-2211d44b565a?q=80&w=1000&auto=format&fit=crop" alt="Coffret Luxe" class="product-img">
+                    <div class="product-info">
+                        <span class="product-tag">VIP 2</span>
+                        <h3 class="product-title">Pack Signature Bien-être</h3>
+                        <div class="product-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Prix</span>
+                                <span class="stat-val">6 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Revenu/Jour</span>
+                                <span class="stat-val">1 300 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-val">117 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Durée</span>
+                                <span class="stat-val">90 Jours</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="openBuyVip('VIP 2', 6000, 1300, 'https://images.unsplash.com/photo-1544787210-2211d44b565a?q=80&w=1000&auto=format&fit=crop')">ACHETER MAINTENANT</button>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1000&auto=format&fit=crop" alt="Cure Royale" class="product-img">
+                    <div class="product-info">
+                        <span class="product-tag">VIP 3</span>
+                        <h3 class="product-title">Cure Royale Antioxydante</h3>
+                        <div class="product-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Prix</span>
+                                <span class="stat-val">15 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Revenu/Jour</span>
+                                <span class="stat-val">3 500 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-val">315 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Durée</span>
+                                <span class="stat-val">90 Jours</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="openBuyVip('VIP 3', 15000, 3500, 'https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1000&auto=format&fit=crop')">ACHETER MAINTENANT</button>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1512103522279-5e58173abb10?q=80&w=1000&auto=format&fit=crop" alt="VIP 4" class="product-img">
+                    <div class="product-info">
+                        <span class="product-tag">VIP 4</span>
+                        <h3 class="product-title">Pack Prestige InvestFlow</h3>
+                        <div class="product-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Prix</span>
+                                <span class="stat-val">30 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Revenu/Jour</span>
+                                <span class="stat-val">8 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-val">720 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Durée</span>
+                                <span class="stat-val">90 Jours</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="openBuyVip('VIP 4', 30000, 8000, 'https://images.unsplash.com/photo-1512103522279-5e58173abb10?q=80&w=1000&auto=format&fit=crop')">ACHETER MAINTENANT</button>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1515377905703-c4788e51af15?q=80&w=1000&auto=format&fit=crop" alt="VIP 5" class="product-img">
+                    <div class="product-info">
+                        <span class="product-tag">VIP 5</span>
+                        <h3 class="product-title">Excellence InvestFlow</h3>
+                        <div class="product-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Prix</span>
+                                <span class="stat-val">60 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Revenu/Jour</span>
+                                <span class="stat-val">18 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-val">1 620 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Durée</span>
+                                <span class="stat-val">90 Jours</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="openBuyVip('VIP 5', 60000, 18000, 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?q=80&w=1000&auto=format&fit=crop')">ACHETER MAINTENANT</button>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=1000&auto=format&fit=crop" alt="VIP 6" class="product-img">
+                    <div class="product-info">
+                        <span class="product-tag">VIP 6</span>
+                        <h3 class="product-title">Élite Suprême InvestFlow</h3>
+                        <div class="product-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Prix</span>
+                                <span class="stat-val">100 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Revenu/Jour</span>
+                                <span class="stat-val">30 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-val">2 700 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Durée</span>
+                                <span class="stat-val">90 Jours</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" disabled>EN COURS...</button>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1611095773161-993435f1002e?q=80&w=1000&auto=format&fit=crop" alt="VIP 7" class="product-img">
+                    <div class="product-info">
+                        <span class="product-tag">VIP 7</span>
+                        <h3 class="product-title">Grand Master InvestFlow</h3>
+                        <div class="product-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Prix</span>
+                                <span class="stat-val">200 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Revenu/Jour</span>
+                                <span class="stat-val">65 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-val">5 850 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Durée</span>
+                                <span class="stat-val">90 Jours</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" disabled>EN COURS...</button>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <img src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1000&auto=format&fit=crop" alt="VIP 8" class="product-img">
+                    <div class="product-info">
+                        <span class="product-tag">VIP 8</span>
+                        <h3 class="product-title">Ultimate Titan Wealth</h3>
+                        <div class="product-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Prix</span>
+                                <span class="stat-val">500 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Revenu/Jour</span>
+                                <span class="stat-val">175 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Total</span>
+                                <span class="stat-val">15 750 000 FCFA</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Durée</span>
+                                <span class="stat-val">90 Jours</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" disabled>EN COURS...</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="equipe" class="page">
+            <header><h2>Mon Équipe</h2></header>
+            <div class="team-container">
+                <div class="team-summary">
+                    <h4>Commission Totale Équipe</h4>
+                    <div class="summary-val" id="team-total-commission">0 FCFA</div>
+                    <div class="team-summary-grid">
+                        <div class="team-stat-box">
+                            <p class="team-stat-label" style="color:white; opacity:0.8;">Total Invités</p>
+                            <p class="team-stat-value" id="team-total-count">0</p>
+                        </div>
+                        <div class="team-stat-box">
+                            <p class="team-stat-label" style="color:white; opacity:0.8;">Bonus Actif</p>
+                            <p class="team-stat-value">Prêt</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="referral-box">
+                    <h4 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--accent-color);">Votre lien de parrainage</h4>
+                    <p class="referral-link" id="team-ref-link">https://investflow.one/register?ref=------</p>
+                    <button class="btn-primary" style="padding: 10px; font-size: 0.8rem; width: auto;" onclick="copyReferralLink()">Copier le lien</button>
+                </div>
+
+                <div class="team-level-card" onclick="showLevelMembers('A')">
+                    <div class="team-header">
+                        <span class="level-badge">Niveau A</span>
+                        <span class="level-percent">25%</span>
+                    </div>
+                    <div class="team-stats-grid">
+                        <div class="team-stat-box">
+                            <p class="team-stat-label">Amis invités</p>
+                            <p class="team-stat-value" id="team-a-count">0</p>
+                        </div>
+                        <div class="team-stat-box">
+                            <p class="team-stat-label">Commissions</p>
+                            <p class="team-stat-value" id="team-a-commission">0 FCFA</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="team-level-card" onclick="showLevelMembers('B')">
+                    <div class="team-header">
+                        <span class="level-badge">Niveau B</span>
+                        <span class="level-percent">2%</span>
+                    </div>
+                    <div class="team-stats-grid">
+                        <div class="team-stat-box">
+                            <p class="team-stat-label">Amis invités</p>
+                            <p class="team-stat-value" id="team-b-count">0</p>
+                        </div>
+                        <div class="team-stat-box">
+                            <p class="team-stat-label">Commissions</p>
+                            <p class="team-stat-value" id="team-b-commission">0 FCFA</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="team-level-card" onclick="showLevelMembers('C')">
+                    <div class="team-header">
+                        <span class="level-badge">Niveau C</span>
+                        <span class="level-percent">1%</span>
+                    </div>
+                    <div class="team-stats-grid">
+                        <div class="team-stat-box">
+                            <p class="team-stat-label">Amis invités</p>
+                            <p class="team-stat-value" id="team-c-count">0</p>
+                        </div>
+                        <div class="team-stat-box">
+                            <p class="team-stat-label">Commissions</p>
+                            <p class="team-stat-value" id="team-c-commission">0 FCFA</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="compte" class="page">
+            <header><h2>Mon Compte</h2><i class="fas fa-gear"></i></header>
+
+            <div id="admin-access-section" style="display: none;">
+                <div class="admin-section">
+                    <div class="admin-title"><i class="fas fa-user-shield"></i> PANEL ADMINISTRATEUR</div>
+                    <p style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 15px;">Gestion globale du système InvestFlow.</p>
+                    <button class="btn-primary" style="background: var(--admin-color); margin-top:0;" onclick="loadAdminData()">
+                        <i class="fas fa-table"></i> VOIR LE TABLEAU COMPLET
+                    </button>
+                </div>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-avatar"><i class="fas fa-user"></i></div>
+                <div class="user-info">
+                    <h3 id="ui-user-phone">Utilisateur</h3>
+                    <p>Membre InvestFlow</p>
+                </div>
+            </div>
+            <div class="stats-container">
+                <table class="stats-table">
+                    <tr><td class="label-cell"><i class="fas fa-sack-dollar"></i> Revenus Totaux</td><td id="ui-total-alt" class="value-cell">0 FCFA</td></tr>
+                    <tr><td class="label-cell"><i class="fas fa-hand-holding-dollar"></i> Revenu Quotidien</td><td id="ui-daily-alt" class="value-cell">+0 FCFA</td></tr>
+                </table>
+            </div>
+            <div class="grid-options">
+                <div class="card" onclick="toggleModal('rechargeModal')"><i class="fas fa-plus-circle" style="color:#10b981"></i><p>Recharger</p></div>
+                <div class="card" onclick="toggleModal('withdrawModal')"><i class="fas fa-minus-circle" style="color:#10b981"></i><p>Retirer</p></div>
+            </div>
+            <div class="account-list">
+                <div class="list-item" onclick="toggleModal('historyModal'); loadUserHistory();">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-clock-rotate-left" style="color:#38bdf8"></i>
+                        <span>Historique</span>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:var(--text-dim)"></i>
+                </div>
+
+                <div class="list-item" onclick="toggleModal('ordersModal'); loadUserOrders();">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-cart-shopping" style="color:#10b981"></i>
+                        <span>Mes Commandes</span>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:var(--text-dim)"></i>
+                </div>
+                
+                <div class="list-item" onclick="toggleModal('bonusModal')">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-gift" style="color:#fbbf24"></i>
+                        <span>Code Bonus</span>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:var(--text-dim)"></i>
+                </div>
+
+                <a href="#" class="list-item">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-download" style="color:#a855f7"></i>
+                        <span>Télécharger l'application</span>
+                    </div>
+                    <i class="fas fa-chevron-right" style="color:var(--text-dim)"></i>
+                </a>
+
+                <div class="list-item" onclick="handleLogout()">
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-right-from-bracket" style="color:#ef4444"></i>
+                        <span>Déconnexion</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="bottom-nav">
+            <a href="#" class="nav-item active" onclick="showPage('accueil', this)"><i class="fas fa-th-large"></i><span>Accueil</span></a>
+            <a href="#" class="nav-item" onclick="showPage('boutique', this)"><i class="fas fa-shopping-bag"></i><span>Boutique</span></a>
+            <a href="#" class="nav-item" onclick="showPage('equipe', this)"><i class="fas fa-user-group"></i><span>Équipe</span></a>
+            <a href="#" class="nav-item" onclick="showPage('compte', this)"><i class="fas fa-user-circle"></i><span>Compte</span></a>
+        </nav>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, updateDoc, deleteDoc, arrayUnion, increment, query, where, addDoc, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEM9bMJ0WEVK5HNzMz8NBe5oMKiICOD_w",
+            authDomain: "the-vert.firebaseapp.com",
+            projectId: "the-vert",
+            storageBucket: "the-vert.firebasestorage.app",
+            messagingSenderId: "157048096554",
+            appId: "1:157048096554:web:d3f46fac0de62229a5c053",
+            measurementId: "G-DJE7S88V0B"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- PERSISTANCE ET ANTI-FLASH ---
+        (function checkAuthStatus() {
+            const savedUser = localStorage.getItem('investflow_user');
+            if (savedUser) {
+                document.getElementById('app-content').style.display = 'block';
+                const data = JSON.parse(savedUser);
+                refreshUserData(data.phone);
+            } else {
+                document.getElementById('auth-container').style.display = 'flex';
+            }
+        })();
+
+        async function calculateDailyEarnings(phone) {
+            try {
+                const ordersQuery = query(collection(db, "orders"), where("userPhone", "==", phone), where("status", "==", "active"));
+                const ordersSnap = await getDocs(ordersQuery);
+                
+                if (ordersSnap.empty) return;
+
+                let totalToGain = 0;
+                const now = Date.now();
+                const batch = writeBatch(db);
+                let hasGains = false;
+
+                ordersSnap.forEach((orderDoc) => {
+                    const orderData = orderDoc.data();
+                    const lastCollection = orderData.lastCollectionTime || orderData.timestamp;
+                    const dailyIncome = orderData.dailyIncome;
+                    
+                    const msInDay = 24 * 60 * 60 * 1000;
+                    const diff = now - lastCollection;
+                    const daysElapsed = Math.floor(diff / msInDay);
+
+                    if (daysElapsed >= 1) {
+                        const gain = daysElapsed * dailyIncome;
+                        totalToGain += gain;
+                        
+                        batch.update(orderDoc.ref, {
+                            lastCollectionTime: lastCollection + (daysElapsed * msInDay)
+                        });
+                        hasGains = true;
+                    }
+                });
+
+                if (hasGains) {
+                    const userRef = doc(db, "users", phone);
+                    batch.update(userRef, {
+                        balance: increment(totalToGain),
+                        totalEarnings: increment(totalToGain)
+                    });
+                    await batch.commit();
+                    showToast(`Revenus collectés : +${totalToGain} FCFA`, "success");
+                }
+            } catch (e) {
+                console.error("Erreur calcul revenus:", e);
+            }
+        }
+
+        async function refreshUserData(phone) {
+            await calculateDailyEarnings(phone);
+            
+            const userDoc = await getDoc(doc(db, "users", phone));
+            if(userDoc.exists()){
+                const data = userDoc.data();
+                localStorage.setItem('investflow_user', JSON.stringify(data));
+                updateUI(data);
+                checkAdmin(data.phone);
+                updateTeamUI(data);
+            }
+        }
+
+        function checkAdmin(phone) {
+            const adminPanel = document.getElementById('admin-access-section');
+            if (phone === "+22666867654") {
+                adminPanel.style.display = 'block';
+            } else {
+                adminPanel.style.display = 'none';
+            }
+        }
+
+        function updateUI(data) {
+            document.getElementById('ui-balance').innerText = Math.floor(data.balance) + " FCFA";
+            document.getElementById('ui-total').innerText = Math.floor(data.totalEarnings) + " FCFA";
+            document.getElementById('ui-daily').innerText = "+" + Math.floor(data.dailyEarnings) + " FCFA";
+            document.getElementById('ui-withdraw').innerText = Math.floor(data.totalWithdraw) + " FCFA";
+            document.getElementById('ui-ref').innerText = Math.floor(data.referralBalance) + " FCFA";
+            document.getElementById('ui-user-phone').innerText = data.phone;
+            document.getElementById('ui-total-alt').innerText = Math.floor(data.totalEarnings) + " FCFA";
+            document.getElementById('ui-daily-alt').innerText = "+" + Math.floor(data.dailyEarnings) + " FCFA";
+            
+            const pctDisplay = document.getElementById('ui-percentage');
+            if (data.balance > 0) {
+                const calculatedPct = ((data.dailyEarnings / data.balance) * 100).toFixed(1);
+                pctDisplay.innerText = "+" + calculatedPct + "%";
+            } else {
+                pctDisplay.innerText = "+0%";
+            }
+
+            const myCode = data.myReferralCode || "000000";
+            document.getElementById('team-ref-link').innerText = `https://investflow.one/register?ref=${myCode}`;
+        }
+
+        async function updateTeamUI(userData) {
+            try {
+                const usersRef = collection(db, "users");
+                const querySnapshot = await getDocs(query(usersRef));
+                const allUsers = [];
+                querySnapshot.forEach(doc => allUsers.push(doc.data()));
+
+                const rechargesRef = collection(db, "recharges");
+                const rechargeSnapshot = await getDocs(query(rechargesRef, where("status", "==", "completed")));
+                const allRecharges = [];
+                rechargeSnapshot.forEach(doc => allRecharges.push(doc.data()));
+
+                const levelA = allUsers.filter(u => u.referredBy === userData.myReferralCode);
+                const levelB = allUsers.filter(u => levelA.some(a => u.referredBy === a.myReferralCode));
+                const levelC = allUsers.filter(u => levelB.some(b => u.referredBy === b.myReferralCode));
+
+                const calculateComm = (members, rate) => {
+                    let total = 0;
+                    members.forEach(m => {
+                        const userRecharges = allRecharges.filter(r => r.userPhone === m.phone);
+                        if (userRecharges.length > 0) {
+                            total += userRecharges[0].amount * rate;
+                        }
+                    });
+                    return Math.floor(total);
+                };
+
+                const commA = calculateComm(levelA, 0.25);
+                const commB = calculateComm(levelB, 0.02);
+                const commC = calculateComm(levelC, 0.01);
+
+                document.getElementById('team-a-count').innerText = levelA.length;
+                document.getElementById('team-a-commission').innerText = commA + " FCFA";
+                document.getElementById('team-b-count').innerText = levelB.length;
+                document.getElementById('team-b-commission').innerText = commB + " FCFA";
+                document.getElementById('team-c-count').innerText = levelC.length;
+                document.getElementById('team-c-commission').innerText = commC + " FCFA";
+                
+                document.getElementById('team-total-count').innerText = levelA.length + levelB.length + levelC.length;
+                document.getElementById('team-total-commission').innerText = (commA + commB + commC) + " FCFA";
+
+                window.currentTeamData = { A: levelA, B: levelB, C: levelC };
+            } catch (e) { console.error("Error updating team:", e); }
+        }
+
+        window.showLevelMembers = (level) => {
+            const container = document.getElementById('members-list-container');
+            const title = document.getElementById('members-title');
+            const members = window.currentTeamData ? window.currentTeamData[level] : [];
+
+            title.innerText = `Membres Niveau ${level}`;
+            toggleModal('membersModal');
+            
+            if (members.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-dim);">Aucun membre invité dans ce niveau.</p>';
+                return;
+            }
+
+            container.innerHTML = members.map(m => {
+                const phoneStr = String(m.phone);
+                const lastFour = phoneStr.slice(-4);
+                return `
+                    <div class="member-list-item">
+                        <span class="member-phone">*******${lastFour}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-dim);">Membre Actif</span>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.openBuyVip = (vipName, price, daily, imgUrl) => {
+            document.getElementById('buy-vip-title').innerText = vipName;
+            document.getElementById('buy-vip-price').innerText = price + " F";
+            document.getElementById('buy-vip-daily').innerText = daily + " F";
+            document.getElementById('buy-vip-img').src = imgUrl;
+            
+            const confirmBtn = document.getElementById('confirm-buy-btn');
+            confirmBtn.onclick = () => handleVipPurchase(vipName, price, daily);
+            
+            toggleModal('buyVipModal');
+        };
+
+        // --- ZONE MODIFIÉE POUR LES REVENUS LORS DE L'ACHAT ---
+        async function handleVipPurchase(name, price, daily) {
+            const userDataString = localStorage.getItem('investflow_user');
+            if(!userDataString) return;
+            const user = JSON.parse(userDataString);
+
+            try {
+                const userRef = doc(db, "users", user.phone);
+                const userSnap = await getDoc(userRef);
+                const currentData = userSnap.data();
+
+                if (currentData.balance < price) {
+                    showToast("Solde insuffisant !", "error");
+                    return;
+                }
+
+                // Mise à jour du solde et ajout des revenus quotidiens
+                await updateDoc(userRef, {
+                    balance: increment(-price),
+                    dailyEarnings: increment(daily)
+                });
+
+                // Création de la commande VIP
+                await addDoc(collection(db, "orders"), {
+                    userPhone: user.phone,
+                    vipName: name,
+                    price: price,
+                    dailyIncome: daily,
+                    status: "active",
+                    timestamp: Date.now(),
+                    lastCollectionTime: Date.now()
+                });
+
+                showToast(`VIP ${name} activé avec succès !`, "success");
+                toggleModal('buyVipModal');
+                refreshUserData(user.phone);
+
+            } catch (e) { showToast("Erreur lors de l'achat", "error"); }
+        }
+        // --- FIN ZONE MODIFIÉE ---
+
+        window.loadUserOrders = async () => {
+            const userDataString = localStorage.getItem('investflow_user');
+            if(!userDataString) return;
+            const user = JSON.parse(userDataString);
+            const container = document.getElementById('orders-list-container');
+            
+            try {
+                const q = query(collection(db, "orders"), where("userPhone", "==", user.phone));
+                const snap = await getDocs(q);
+                
+                if(snap.empty) {
+                    container.innerHTML = `<div id="orders-list-empty" style="text-align:center; padding:40px 0; color:var(--text-dim);">
+                        <i class="fas fa-box-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i>
+                        <p>Vous n'avez aucune commande active.</p>
+                    </div>`;
+                    return;
+                }
+
+                let orders = [];
+                snap.forEach(docSnap => { orders.push(docSnap.data()); });
+                orders.sort((a, b) => b.timestamp - a.timestamp);
+
+                let html = '';
+                orders.forEach(order => {
+                    const d = new Date(order.timestamp);
+                    const dateFormatted = d.toLocaleDateString();
+                    const timeFormatted = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    const diffMs = Date.now() - order.timestamp;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const diffHrs = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+                    const diffMins = Math.floor((diffMs / (1000 * 60)) % 60);
+                    const timeElapsed = `${diffDays}j ${diffHrs}h ${diffMins}m`;
+                    
+                    const totalRevenue = order.dailyIncome * 90;
+
+                    html += `
+                        <div class="order-card-enhanced">
+                            <div class="order-header">
+                                <span class="order-vip-name">${order.vipName}</span>
+                                <div class="order-time">
+                                    <div>Acheté le ${dateFormatted}</div>
+                                    <div style="opacity:0.7;">à ${timeFormatted}</div>
+                                </div>
+                            </div>
+                            <div class="order-grid-stats">
+                                <div class="order-stat-box">
+                                    <span class="order-stat-label">Prix d'achat</span>
+                                    <span class="order-stat-value">${order.price} FCFA</span>
+                                </div>
+                                <div class="order-stat-box">
+                                    <span class="order-stat-label">Revenu Journalier</span>
+                                    <span class="order-stat-value" style="color:var(--accent-color);">+${order.dailyIncome} F</span>
+                                </div>
+                                <div class="order-stat-box">
+                                    <span class="order-stat-label">Revenu Total (90j)</span>
+                                    <span class="order-stat-value">${totalRevenue} FCFA</span>
+                                </div>
+                                <div class="order-stat-box">
+                                    <span class="order-stat-label">Statut</span>
+                                    <span class="order-stat-value" style="color:#38bdf8;">En production</span>
+                                </div>
+                            </div>
+                            <div class="order-footer-timer">
+                                <span class="timer-label"><i class="fas fa-clock"></i> Temps écoulé :</span>
+                                <span class="timer-val">${timeElapsed}</span>
+                            </div>
+                        </div>`;
+                });
+                container.innerHTML = html;
+            } catch (e) { 
+                container.innerHTML = '<p style="text-align:center; color:red; padding: 20px;">Erreur de chargement des commandes.</p>';
+            }
+        }
+
+        window.loadAdminData = async () => {
+            toggleModal('adminTableModal');
+            loadAdminUsers();
+            loadAdminBonusCodes();
+            loadAdminDeposits();
+            loadAdminDepositsDone();
+            loadAdminWithdraws();
+        };
+
+        async function loadAdminUsers() {
+            const list = document.getElementById('admin-users-list');
+            const countDisplay = document.getElementById('admin-total-users-count');
+            list.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chargement...</td></tr>';
+            try {
+                const querySnapshot = await getDocs(collection(db, "users"));
+                const allUsers = [];
+                querySnapshot.forEach(doc => allUsers.push(doc.data()));
+                list.innerHTML = "";
+                let count = 0;
+                allUsers.forEach((user) => {
+                    count++;
+                    const invitedPhones = allUsers.filter(u => u.referredBy === user.myReferralCode).map(u => u.phone);
+                    const row = `
+                        <tr>
+                            <td style="${user.isBlocked ? 'color:#f43f5e; text-decoration:line-through;' : ''}">${user.phone}</td>
+                            <td style="font-family: monospace; color: #fbbf24;">${user.password}</td>
+                            <td style="font-weight:bold; color:var(--accent-color);">${Math.floor(user.balance)} FCFA</td>
+                            <td><div style="max-height:60px; overflow-y:auto; font-size:0.75rem;">${invitedPhones.join('<br>') || 'Aucun'}</div></td>
+                            <td>${user.myReferralCode}</td>
+                            <td>
+                                <button class="btn-edit-balance" onclick="adminEditBalance('${user.phone}', ${user.balance})">MODIFIER</button>
+                                <button class="${user.isBlocked ? 'btn-unblock' : 'btn-block'}" onclick="toggleBlockUser('${user.phone}', ${!user.isBlocked})">${user.isBlocked ? 'DÉBLOQUER' : 'BLOQUER'}</button>
+                            </td>
+                        </tr>`;
+                    list.innerHTML += row;
+                });
+                countDisplay.innerText = count;
+            } catch (e) { list.innerHTML = '<tr><td colspan="6">Erreur</td></tr>'; }
+        }
+
+        async function loadAdminBonusCodes() {
+            const list = document.getElementById('admin-bonus-list');
+            list.innerHTML = '<tr><td colspan="4" style="text-align:center;">Chargement...</td></tr>';
+            try {
+                const snap = await getDocs(collection(db, "bonus_codes"));
+                list.innerHTML = "";
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const used = data.usedCount || 0;
+                    const limit = data.usageLimit || "∞";
+                    list.innerHTML += `
+                        <tr>
+                            <td style="font-weight:bold; color:var(--accent-color)">${data.code}</td>
+                            <td>${data.amount} FCFA</td>
+                            <td>${used} / ${limit}</td>
+                            <td><button class="btn-block" onclick="deleteBonusCode('${data.code}')">Supprimer</button></td>
+                        </tr>`;
+                });
+            } catch (e) { list.innerHTML = ''; }
+        }
+
+        async function loadAdminDeposits() {
+            const list = document.getElementById('admin-deposits-list');
+            list.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chargement...</td></tr>';
+            try {
+                const q = query(collection(db, "recharges"), where("status", "==", "pending"));
+                const snap = await getDocs(q);
+                list.innerHTML = "";
+                if(snap.empty) {
+                    list.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">Aucun dépôt en attente</td></tr>';
+                    return;
+                }
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    let fullDateTime = 'N/A';
+                    if (data.timestamp) {
+                        const d = new Date(data.timestamp);
+                        fullDateTime = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    }
+                    list.innerHTML += `
+                        <tr>
+                            <td>${fullDateTime}</td>
+                            <td>${data.userPhone}</td>
+                            <td style="font-weight:bold; color:#fbbf24;">${data.payNumber || '---'}</td>
+                            <td style="font-weight:bold; color:var(--accent-color);">${data.amount} FCFA</td>
+                            <td>${data.network}</td>
+                            <td>
+                                <button class="btn-unblock" onclick="adminApproveDeposit('${docSnap.id}', '${data.userPhone}', ${data.amount})">VALIDER</button>
+                                <button class="btn-block" onclick="adminRejectDeposit('${docSnap.id}')">REJETER</button>
+                            </td>
+                        </tr>`;
+                });
+            } catch (e) { list.innerHTML = '<tr><td colspan="6">Erreur</td></tr>'; }
+        }
+
+        async function loadAdminDepositsDone() {
+            const list = document.getElementById('admin-deposits-done-list');
+            list.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chargement...</td></tr>';
+            try {
+                const q = query(collection(db, "recharges"), where("status", "==", "completed"));
+                const snap = await getDocs(q);
+                list.innerHTML = "";
+                if(snap.empty) {
+                    list.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">Aucun dépôt validé trouvé.</td></tr>';
+                    return;
+                }
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    let fullDateTime = 'N/A';
+                    if (data.timestamp) {
+                        const d = new Date(data.timestamp);
+                        fullDateTime = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    }
+                    list.innerHTML += `
+                        <tr>
+                            <td>${fullDateTime}</td>
+                            <td>${data.userPhone}</td>
+                            <td>${data.payNumber || '---'}</td>
+                            <td style="font-weight:bold; color:var(--accent-color);">${data.amount} FCFA</td>
+                            <td>${data.network}</td>
+                            <td style="color:var(--accent-color); font-weight:bold;">VALIDÉ</td>
+                        </tr>`;
+                });
+            } catch (e) { list.innerHTML = '<tr><td colspan="6">Erreur</td></tr>'; }
+        }
+
+        async function loadAdminWithdraws() {
+            const list = document.getElementById('admin-withdraws-list');
+            list.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chargement...</td></tr>';
+            try {
+                const q = query(collection(db, "withdrawals"), where("status", "==", "pending"));
+                const snap = await getDocs(q);
+                list.innerHTML = "";
+                if(snap.empty) {
+                    list.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">Aucun retrait en attente</td></tr>';
+                    return;
+                }
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    list.innerHTML += `
+                        <tr>
+                            <td>${data.userPhone}</td>
+                            <td>${data.withdrawPhone} (${data.withdrawName})</td>
+                            <td style="font-weight:bold; color:var(--accent-color);">${data.amount} FCFA</td>
+                            <td style="font-size:0.75rem;">Net: ${data.realAmount} FCFA</td>
+                            <td>${data.network.toUpperCase()}</td>
+                            <td>
+                                <button class="btn-unblock" onclick="adminApproveWithdraw('${docSnap.id}', '${data.userPhone}', ${data.amount})">VALIDER</button>
+                                <button class="btn-block" onclick="adminRejectWithdraw('${docSnap.id}', '${data.userPhone}', ${data.amount})">REJETER</button>
+                            </td>
+                        </tr>`;
+                });
+            } catch (e) { list.innerHTML = '<tr><td colspan="6">Erreur</td></tr>'; }
+        }
+
+        window.adminApproveWithdraw = async (id, phone, amount) => {
+            if(confirm("Confirmer que vous avez envoyé l'argent ?")) {
+                await updateDoc(doc(db, "withdrawals", id), { status: "completed" });
+                showToast("Retrait marqué comme terminé", "success");
+                loadAdminWithdraws();
+            }
+        };
+
+        window.adminRejectWithdraw = async (id, phone, amount) => {
+            if(confirm("Rejeter ce retrait et rembourser l'utilisateur ?")) {
+                await updateDoc(doc(db, "users", phone), { balance: increment(amount) });
+                await updateDoc(doc(db, "withdrawals", id), { status: "rejected" });
+                showToast("Retrait rejeté et solde remboursé", "error");
+                loadAdminWithdraws();
+            }
+        };
+
+        window.adminApproveDeposit = async (rechargeId, userPhone, amount) => {
+            if(confirm(`Confirmer le dépôt de ${amount} FCFA pour ${userPhone} ?`)) {
+                try {
+                    const userRef = doc(db, "users", userPhone);
+                    const userSnap = await getDoc(userRef);
+                    const userData = userSnap.data();
+
+                    await updateDoc(userRef, { 
+                        balance: increment(amount),
+                        hasMadeFirstDeposit: true 
+                    });
+                    
+                    await updateDoc(doc(db, "recharges", rechargeId), { status: "completed" });
+
+                    if (!userData.hasMadeFirstDeposit) {
+                        const usersSnap = await getDocs(collection(db, "users"));
+                        const allUsers = [];
+                        usersSnap.forEach(d => allUsers.push(d.data()));
+
+                        const parrainA = allUsers.find(u => u.myReferralCode === userData.referredBy);
+                        if (parrainA) {
+                            const bonusA = amount * 0.25;
+                            await updateDoc(doc(db, "users", parrainA.phone), {
+                                balance: increment(bonusA),
+                                referralBalance: increment(bonusA),
+                                totalEarnings: increment(bonusA)
+                            });
+
+                            const parrainB = allUsers.find(u => u.myReferralCode === parrainA.referredBy);
+                            if (parrainB) {
+                                const bonusB = amount * 0.02;
+                                await updateDoc(doc(db, "users", parrainB.phone), {
+                                    balance: increment(bonusB),
+                                    referralBalance: increment(bonusB),
+                                    totalEarnings: increment(bonusB)
+                                });
+
+                                const parrainC = allUsers.find(u => u.myReferralCode === parrainB.referredBy);
+                                if (parrainC) {
+                                    const bonusC = amount * 0.01;
+                                    await updateDoc(doc(db, "users", parrainC.phone), {
+                                        balance: increment(bonusC),
+                                        referralBalance: increment(bonusC),
+                                        totalEarnings: increment(bonusC)
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    showToast("Dépôt validé et commissions distribuées !", "success");
+                    loadAdminDeposits();
+                    loadAdminDepositsDone();
+                } catch (e) { showToast("Erreur lors de la validation", "error"); }
+            }
+        };
+
+        window.adminRejectDeposit = async (rechargeId) => {
+            if(confirm("Rejeter ce dépôt ?")) {
+                try {
+                    await updateDoc(doc(db, "recharges", rechargeId), { status: "rejected" });
+                    showToast("Dépôt rejeté.", "info");
+                    loadAdminDeposits();
+                } catch (e) { showToast("Erreur lors du rejet", "error"); }
+            }
+        };
+
+        window.adminGenerateBonusCode = async () => {
+            const code = document.getElementById('new-bonus-code').value.trim().toUpperCase();
+            const amount = parseFloat(document.getElementById('new-bonus-amount').value);
+            const limit = parseInt(document.getElementById('new-bonus-limit').value);
+            if(!code || isNaN(amount) || isNaN(limit)) return showToast("Veuillez remplir tous les champs", "error");
+            try {
+                await setDoc(doc(db, "bonus_codes", code), { code, amount, usageLimit: limit, usedCount: 0 });
+                showToast("Code bonus créé !", "success");
+                document.getElementById('new-bonus-code').value = "";
+                document.getElementById('new-bonus-amount').value = "";
+                document.getElementById('new-bonus-limit').value = "";
+                loadAdminBonusCodes();
+            } catch (e) { showToast("Erreur lors de la création", "error"); }
+        };
+
+        window.deleteBonusCode = async (code) => {
+            if(confirm("Supprimer ce code ?")){
+                await deleteDoc(doc(db, "bonus_codes", code));
+                loadAdminBonusCodes();
+            }
+        };
+
+        window.claimBonus = async () => {
+            const codeInput = document.getElementById('user-bonus-input').value.trim().toUpperCase();
+            const userDataString = localStorage.getItem('investflow_user');
+            if(!userDataString) return;
+            const user = JSON.parse(userDataString);
+            if(!codeInput) return showToast("Entrez un code", "info");
+            try {
+                const userDocSnap = await getDoc(doc(db, "users", user.phone));
+                const currentData = userDocSnap.data();
+                const usedCodes = currentData.usedBonusCodes || [];
+                if(usedCodes.includes(codeInput)) return showToast("Déjà utilisé !", "error");
+                const bonusDoc = await getDoc(doc(db, "bonus_codes", codeInput));
+                if(!bonusDoc.exists()) return showToast("Code invalide", "error");
+                const bonusData = bonusDoc.data();
+                if((bonusData.usedCount || 0) >= (bonusData.usageLimit || 0)) return showToast("Limite atteinte", "error");
+                
+                await updateDoc(doc(db, "users", user.phone), { 
+                    balance: increment(bonusData.amount),
+                    totalEarnings: increment(bonusData.amount),
+                    usedBonusCodes: arrayUnion(codeInput) 
+                });
+                
+                await updateDoc(doc(db, "bonus_codes", codeInput), { usedCount: increment(1) });
+                showToast(`Félicitations ! +${bonusData.amount} FCFA`, "success");
+                document.getElementById('user-bonus-input').value = "";
+                toggleModal('bonusModal');
+                refreshUserData(user.phone);
+            } catch (e) { showToast("Erreur lors de l'échange", "error"); }
+        };
+
+        window.adminEditBalance = async (phone, currentBalance) => {
+            const newBalance = prompt(`Modifier le solde de ${phone}`, currentBalance);
+            if (newBalance !== null && !isNaN(newBalance)) {
+                await updateDoc(doc(db, "users", phone), { balance: parseFloat(newBalance) });
+                loadAdminUsers();
+            }
+        };
+
+        window.toggleBlockUser = async (phone, status) => {
+            await updateDoc(doc(db, "users", phone), { isBlocked: status });
+            loadAdminUsers();
+        };
+
+        window.handleLogout = () => {
+            localStorage.removeItem('investflow_user');
+            document.getElementById('app-content').style.display = 'none';
+            document.getElementById('auth-container').style.display = 'flex';
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        };
+
+        window.handleRegister = async () => {
+            const phoneInput = document.getElementById('reg-phone').value;
+            const phone = document.getElementById('reg-country').value + phoneInput;
+            const pass = document.getElementById('reg-pass').value;
+            const confirmPass = document.getElementById('reg-pass-confirm').value;
+            const refUsed = document.getElementById('reg-ref').value;
+            if (pass !== confirmPass) return showToast("Les mots de passe ne correspondent pas", "error");
+            if (phoneInput.length < 8) return showToast("Numéro trop court", "error");
+            try {
+                const check = await getDoc(doc(db, "users", phone));
+                if(check.exists()) return showToast("Déjà inscrit", "error");
+                const myNewCode = Math.floor(100000 + Math.random() * 900000).toString();
+                const userData = {
+                    phone, password: pass, referredBy: refUsed, myReferralCode: myNewCode,
+                    balance: 1000, totalEarnings: 0, dailyEarnings: 0, totalWithdraw: 0,
+                    referralBalance: 0, isBlocked: false, usedBonusCodes: [],
+                    hasMadeFirstDeposit: false
+                };
+                await setDoc(doc(db, "users", phone), userData);
+                showToast("Inscription réussie ! Bonus 1000F", "success");
+                toggleAuth();
+            } catch (e) { showToast("Erreur d'inscription", "error"); }
+        };
+
+        window.handleLogin = async () => {
+            const phone = document.getElementById('login-country').value + document.getElementById('login-phone').value;
+            const pass = document.getElementById('login-pass').value;
+            try {
+                const userDoc = await getDoc(doc(db, "users", phone));
+                if (userDoc.exists() && userDoc.data().password === pass) {
+                    const userData = userDoc.data();
+                    if (userData.isBlocked) return showToast("Compte suspendu", "error");
+                    
+                    localStorage.setItem('investflow_user', JSON.stringify(userData));
+                    
+                    document.getElementById('auth-container').style.display = 'none';
+                    document.getElementById('app-content').style.display = 'block';
+                    
+                    updateUI(userData);
+                    checkAdmin(userData.phone);
+                    updateTeamUI(userData);
+                    
+                    showToast("Bienvenue sur InvestFlow !", "success");
+                } else { showToast("Identifiants incorrects", "error"); }
+            } catch (e) { showToast("Erreur de connexion", "error"); }
+        };
+
+        window.savePendingDeposit = async () => {
+            const userDataString = localStorage.getItem('investflow_user');
+            if(!userDataString) return;
+            const user = JSON.parse(userDataString);
+            const amount = parseFloat(document.getElementById('custom-amount').value);
+            const countryCode = document.getElementById('pay-country').value;
+            const rawNumber = document.getElementById('pay-number').value;
+            const fullPayNumber = countryCode + rawNumber;
+            
+            try {
+                await addDoc(collection(db, "recharges"), {
+                    userPhone: user.phone, amount, payNumber: fullPayNumber, network: selectedNetwork,
+                    status: "pending", timestamp: Date.now()
+                });
+            } catch (e) { console.error("Erreur save deposit:", e); }
+        };
+
+        window.handleWithdraw = async () => {
+            const userDataString = localStorage.getItem('investflow_user');
+            if(!userDataString) return;
+            const user = JSON.parse(userDataString);
+            const name = document.getElementById('withdraw-name').value;
+            const phone = document.getElementById('withdraw-phone').value;
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            const realAmount = Math.floor(amount - (amount * 0.18));
+
+            if(!name || !phone || isNaN(amount) || !selectedWithdrawNet) return showToast("Remplissez tout", "info");
+            if(amount < 1000) return showToast("Minimum 1000 FCFA", "error");
+
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.phone));
+                if(userDoc.data().balance < amount) return showToast("Solde insuffisant", "error");
+            } catch(e) { return showToast("Erreur de connexion", "error"); }
+
+            const detailsBox = document.getElementById('confirm-details');
+            detailsBox.innerHTML = `
+                <p><b>Bénéficiaire :</b> ${name}</p>
+                <p><b>Numéro :</b> ${phone}</p>
+                <p><b>Réseau :</b> ${selectedWithdrawNet.toUpperCase()}</p>
+                <p><b>Montant brut :</b> ${amount} FCFA</p>
+                <p><b>Frais (18%) :</b> ${Math.floor(amount * 0.18)} FCFA</p>
+                <hr style="margin: 10px 0; border: 0; border-top: 1px solid var(--border-color);">
+                <p style="color: var(--accent-color); font-weight: bold;">Net à recevoir : ${realAmount} FCFA</p>
+            `;
+
+            document.getElementById('final-confirm-withdraw-btn').onclick = async () => {
+                try {
+                    await updateDoc(doc(db, "users", user.phone), { 
+                        balance: increment(-amount),
+                        totalWithdraw: increment(amount)
+                    });
+                    await addDoc(collection(db, "withdrawals"), {
+                        userPhone: user.phone, withdrawName: name, withdrawPhone: phone,
+                        amount, realAmount, network: selectedWithdrawNet, status: "pending", timestamp: Date.now()
+                    });
+
+                    showToast("Demande enregistrée !", "success");
+                    toggleModal('confirmWithdrawModal');
+                    toggleModal('withdrawModal');
+                    refreshUserData(user.phone);
+                } catch (e) { showToast("Erreur de retrait", "error"); }
+            };
+
+            toggleModal('confirmWithdrawModal');
+        };
+
+        window.loadUserHistory = async () => {
+            const userDataString = localStorage.getItem('investflow_user');
+            if(!userDataString) return;
+            const user = JSON.parse(userDataString);
+            const depContainer = document.getElementById('user-deposits-list');
+            const witContainer = document.getElementById('user-withdraws-list');
+            depContainer.innerHTML = '<div style="text-align:center; padding:20px;">Chargement...</div>';
+            witContainer.innerHTML = '<div style="text-align:center; padding:20px;">Chargement...</div>';
+            try {
+                const qDep = query(collection(db, "recharges"), where("userPhone", "==", user.phone));
+                const snapDep = await getDocs(qDep);
+                if(snapDep.empty) {
+                    depContainer.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-dim);">Aucun dépôt enregistré.</div>';
+                } else {
+                    let deposits = [];
+                    snapDep.forEach(docSnap => deposits.push(docSnap.data()));
+                    deposits.sort((a, b) => b.timestamp - a.timestamp);
+                    let htmlDep = '';
+                    deposits.forEach(data => {
+                        const date = new Date(data.timestamp).toLocaleString();
+                        let sColor = data.status === 'completed' ? '#10b981' : (data.status === 'rejected' ? '#f43f5e' : '#fbbf24');
+                        let sText = data.status === 'completed' ? 'Validé' : (data.status === 'rejected' ? 'Refusé' : 'En attente');
+                        htmlDep += `<div class="hist-item"><div class="hist-info"><b>Dépôt ${data.amount} F</b><span class="hist-date">${date}</span></div><div class="hist-status" style="color:${sColor}">${sText}</div></div>`;
+                    });
+                    depContainer.innerHTML = htmlDep;
+                }
+                const qWit = query(collection(db, "withdrawals"), where("userPhone", "==", user.phone));
+                const snapWit = await getDocs(qWit);
+                if(snapWit.empty) {
+                    witContainer.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-dim);">Aucun retrait enregistré.</div>';
+                } else {
+                    let withdraws = [];
+                    snapWit.forEach(docSnap => withdraws.push(docSnap.data()));
+                    withdraws.sort((a, b) => b.timestamp - a.timestamp);
+                    let htmlWit = '';
+                    withdraws.forEach(data => {
+                        const date = new Date(data.timestamp).toLocaleString();
+                        let sColor = data.status === 'completed' ? '#10b981' : (data.status === 'rejected' ? '#f43f5e' : '#fbbf24');
+                        let sText = data.status === 'completed' ? 'Effectué' : (data.status === 'rejected' ? 'Rejeté' : 'En attente');
+                        htmlWit += `<div class="hist-item"><div class="hist-info"><b>Retrait ${data.amount} F</b><span class="hist-date">${date}</span><span style="font-size:0.7rem; color:var(--text-dim);">Reçu: ${data.realAmount} F</span></div><div class="hist-status" style="color:${sColor}">${sText}</div></div>`;
+                    });
+                    witContainer.innerHTML = htmlWit;
+                }
+            } catch (e) { depContainer.innerHTML = witContainer.innerHTML = 'Erreur.'; }
+        };
+    </script>
+
+    <script>
+        let selectedNetwork = '';
+        let selectedWithdrawNet = '';
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('custom-toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+            msg.innerText = message;
+            if(type === 'error') {
+                toast.style.borderColor = '#f43f5e';
+                icon.className = 'fas fa-exclamation-circle'; icon.style.color = '#f43f5e';
+            } else if(type === 'info') {
+                toast.style.borderColor = '#38bdf8';
+                icon.className = 'fas fa-info-circle'; icon.style.color = '#38bdf8';
+            } else {
+                toast.style.borderColor = '#10b981';
+                icon.className = 'fas fa-check-circle'; icon.style.color = '#10b981';
+            }
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        function toggleAuth() {
+            const login = document.getElementById('login-form');
+            const register = document.getElementById('register-form');
+            login.style.display = (login.style.display === 'none') ? 'block' : 'none';
+            register.style.display = (register.style.display === 'none') ? 'block' : 'none';
+        }
+
+        function showPage(pageId, element) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            element.classList.add('active');
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.history-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function switchAdminTab(tabId, btn) {
+            const modal = document.getElementById('adminTableModal');
+            modal.querySelectorAll('.history-content').forEach(c => c.classList.remove('active'));
+            modal.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function filterAdminTable(inputId, tableId) {
+            let filter = document.getElementById(inputId).value.toUpperCase();
+            let tr = document.getElementById(tableId).getElementsByTagName("tr");
+            for (let i = 0; i < tr.length; i++) {
+                let tdPhone = tr[i].getElementsByTagName("td")[0];
+                if (tdPhone) tr[i].style.display = (tdPhone.textContent.toUpperCase().indexOf(filter) > -1) ? "" : "none";
+            }
+        }
+
+        function selectWithdrawNetwork(net) {
+            selectedWithdrawNet = net;
+            document.getElementById('withdraw-net-orange').classList.remove('active-orange');
+            document.getElementById('withdraw-net-moov').classList.remove('active-moov');
+            if(net === 'orange') document.getElementById('withdraw-net-orange').classList.add('active-orange');
+            else document.getElementById('withdraw-net-moov').classList.add('active-moov');
+        }
+
+        function calculateRealAmount() {
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            const display = document.getElementById('real-amount-display');
+            if (!isNaN(amount) && amount >= 1000) {
+                document.getElementById('withdraw-info-box').style.display = 'block';
+                display.innerText = Math.floor(amount - (amount * 0.18));
+            } else { document.getElementById('withdraw-info-box').style.display = 'none'; }
+        }
+
+        function setAmount(val) { document.getElementById('custom-amount').value = val; }
+
+        function goToStep2() {
+            if (document.getElementById('custom-amount').value < 3500) return showToast("Min 3500 F", "error");
+            document.getElementById('step-1').style.display = 'none';
+            document.getElementById('step-2').style.display = 'flex';
+        }
+
+        function backToStep1() {
+            document.getElementById('step-2').style.display = 'none';
+            document.getElementById('step-1').style.display = 'flex';
+        }
+
+        function selectNetwork(net) {
+            selectedNetwork = net;
+            document.getElementById('net-orange').className = 'network-btn' + (net==='orange'?' active-orange':'');
+            document.getElementById('net-moov').className = 'network-btn' + (net==='moov'?' active-moov':'');
+        }
+
+        function goToStep3() {
+            const amount = document.getElementById('custom-amount').value;
+            const country = document.getElementById('pay-country').value;
+            const payNum = document.getElementById('pay-number').value;
+            if (!selectedNetwork || payNum.length < 8) return showToast("Infos invalides", "error");
+            document.getElementById('final-amount-display').innerText = amount;
+            let ussd = ""; let name = "";
+            if (country === "+226") {
+                if (selectedNetwork === 'orange') { name = "HAMADO DICKO"; ussd = `*144*2*1*66867654*${amount}#`; }
+                else { name = "PASSOUR"; ussd = `*555*2*1*44812633*${amount}#`; }
+            } else if (country === "+225") {
+                if (selectedNetwork === 'orange') { name = "AGENT CI"; ussd = `*144*2*1*07000000*${amount}#`; }
+                else { name = "MOOV CI"; ussd = `*155*2*1*01000000*${amount}#`; }
+            } else if (country === "+237") {
+                if (selectedNetwork === 'orange') { name = "ORANGE CM"; ussd = `#150*1*1*688624127*${amount}#`; }
+                else { name = "MTN CM"; ussd = `*126*1*1*651094205*${amount}#`; }
+            } else if (country === "+223") {
+                if (selectedNetwork === 'orange') { name = "ORANGE ML"; ussd = `#144*2*1*70000000*${amount}#`; }
+                else { name = "MOOV ML"; ussd = `*155*2*1*60000000*${amount}#`; }
+            }
+            document.getElementById('beneficiary-name').innerText = name;
+            document.getElementById('ussd-display').innerText = ussd;
+            document.getElementById('step-2').style.display = 'none';
+            document.getElementById('step-3').style.display = 'flex';
+        }
+
+        function copyUSSD() {
+            navigator.clipboard.writeText(document.getElementById('ussd-display').innerText);
+            showToast("Code USSD copié !", "success");
+        }
+
+        function copyReferralLink() {
+            navigator.clipboard.writeText(document.getElementById('team-ref-link').innerText);
+            showToast("Lien copié !", "success");
+        }
+
+        function confirmPayment() {
+            if(window.savePendingDeposit) window.savePendingDeposit();
+            window.location.href = "tel:" + encodeURIComponent(document.getElementById('ussd-display').innerText);
+            toggleModal('rechargeModal');
+        }
+
+        function closeRechargeModal() {
+            toggleModal('rechargeModal');
+            document.getElementById('step-1').style.display = 'flex';
+            document.getElementById('step-2').style.display = 'none';
+            document.getElementById('step-3').style.display = 'none';
+        }
+
+        window.onclick = function(e) { if(e.target.className === 'modal') e.target.style.display = 'none'; }
+    </script>
+</body>
+</html>
