@@ -1743,6 +1743,13 @@
             if(amount < 1000) return showToast("Minimum 1000 FCFA", "error");
 
             try {
+                // VERIFICATION SI L'UTILISATEUR A UN VIP
+                const qVip = query(collection(db, "orders"), where("userPhone", "==", user.phone), where("status", "==", "active"));
+                const snapVip = await getDocs(qVip);
+                if (snapVip.empty) {
+                    return showToast("Vous devez acheter un VIP pour retirer !", "error");
+                }
+
                 const userDoc = await getDoc(doc(db, "users", user.phone));
                 if(userDoc.data().balance < amount) return showToast("Solde insuffisant", "error");
             } catch(e) { return showToast("Erreur de connexion", "error"); }
